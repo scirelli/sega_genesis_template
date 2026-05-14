@@ -53,3 +53,6 @@ dkms.conf
 
 # debug information files
 *.dwo
+Emulator/GensKmod_v0.7.3/gens_Kmod.log
+Emulator/GensKmod_v0.7.3/GensKMod.cfg
+Emulator/GensKmod_v0.7.3/Gens.cfg
