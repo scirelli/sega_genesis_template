@@ -1,6 +1,6 @@
 FROM scottyhardy/docker-wine:latest
 
-COPY ./Assembler/* /home/wineuser/app
+COPY ./Assembler/* /home/wineuser/app/
 
 WORKDIR /home/wineuser/app
 
