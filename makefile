@@ -1,34 +1,65 @@
-FILE=a
+TARGET          ?= main
+IMAGE_NAME      := asm68k
+DOCKERFILE      := .docker/asm68k_dockerfile
+EMU             ?= mame genesis -cart
+SRCDIR          := src
+DISTDIR         := dist
 
-CMD='podman --volume "$(pwd)/src:/home/wineuser/app/src" --volume "$(pwd)/bin:/home/wineuser/app/bin" run -t --rm asm68k /p /i /w /ov+ /oos+ /oop+ /oow+ /ooz+ /ooaq+ /oosq+ /oomq+ /ow+ ${FILE}.s,../bin/${FILE}.bin,../bin/${FILE}'
+# Auto-detect container runtime (prefer podman)
+CONTAINER_RT    := $(shell command -v podman 2>/dev/null || command -v docker 2>/dev/null)
+ifeq ($(CONTAINER_RT),)
+  $(error Neither podman nor docker found in PATH)
+endif
 
-emu: ${FILE}.bin
-	mame genesis -cart ./bin/${FILE}.bin
-	#wine ./Emulator/gens_kmod/gens.exe "$$(pwd)/bin/${FILE}.bin"
+# Assembler flags
+ASM_FLAGS       := /p /ov+ /oos+ /oop+ /oow+ /ooz+ /ooaq+ /oosq+ /oomq+ /ow+
 
-#p    Produce pure binary output file
-#i    Show an information window while assembling. Only compatible with pure 16-bit MSDOS.
-#w    Write all equates to the listing file.
-#v+   Write local labels to symbol file
-#os+  Short branch optimisation
-#op+  PC relative optimisation
-#ow+  Print warnings
-#oz+  Zero offset optimisation
-#oaq+ Addq optimisation
-#osq+ Subq optimisation
-#omq+ Moveq optimisation
-#ow+  Absolute word addressing optimisation
-#asm68k.exe
-${FILE}.bin: ./src/${FILE}.s
-	$(CMD) /p /i /w /ov+ /oos+ /oop+ /oow+ /ooz+ /ooaq+ /oosq+ /oomq+ /ow+ ,./src/${FILE}.s,./bin/${FILE}.bin,./bin/${FILE}
+# Container paths & volumes
+CONTAINER_APP   := /home/wineuser/app
+VOLUMES         := --volume "$(CURDIR)/$(SRCDIR):$(CONTAINER_APP)/src" \
+                   --volume "$(CURDIR)/$(DISTDIR):$(CONTAINER_APP)/dist"
 
-debug: ./src/${FILE}.s
-	$(CMD) /i /w /ov+ /oos+ /oop+ /oow+ /ooz+ /ooaq+ /oosq+ /oomq+ /ow+ ./src/${FILE}.s,./bin/${FILE}.db.bin,./bin/${FILE}.db
+# Container run (ENTRYPOINT is wine, so this executes: wine asm68k.exe ...)
+RUN             = $(CONTAINER_RT) run --rm -t $(VOLUMES) $(IMAGE_NAME) asm68k.exe
 
-debugMame: debug
-	mame genesis -debug -cart ./bin/${FILE}.db.bin
+# asm68k argument format: [options] source,binary,symbol
+ASM_ARGS        = $(ASM_FLAGS) src/$(TARGET).s,dist/$(TARGET).bin,dist/$(TARGET).sym
+ASM_ARGS_DEBUG  = $(ASM_FLAGS) src/$(TARGET).s,dist/$(TARGET).db.bin,dist/$(TARGET).db.sym
 
-all: ${FILE}.bin
+# ---------- Targets ----------
 
-clean:
-	rm ./bin/*
+.PHONY: help all emu debug debugemu clean image
+
+help: ## Show available targets
+	@echo "Usage: make [target] [TARGET=<stem>]  (default TARGET=$(TARGET))"
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
+
+all: $(DISTDIR)/$(TARGET).bin ## Build ROM binary
+
+emu: $(DISTDIR)/$(TARGET).bin ## Build and run in emulator
+	$(EMU) $(DISTDIR)/$(TARGET).bin
+
+$(DISTDIR)/$(TARGET).bin: $(SRCDIR)/$(TARGET).s | $(DISTDIR) image
+	$(RUN) $(ASM_ARGS)
+
+debug: $(DISTDIR)/$(TARGET).db.bin ## Build debug ROM with symbols
+
+$(DISTDIR)/$(TARGET).db.bin: $(SRCDIR)/$(TARGET).s | $(DISTDIR) image
+	$(RUN) $(ASM_ARGS_DEBUG)
+
+debugemu: $(DISTDIR)/$(TARGET).db.bin ## Debug build + emulator debugger
+	$(EMU) -debug $(DISTDIR)/$(TARGET).db.bin
+
+image: ## Build container image if not present
+	@if ! $(CONTAINER_RT) image inspect $(IMAGE_NAME) >/dev/null 2>&1; then \
+		echo "Building container image '$(IMAGE_NAME)'..."; \
+		$(CONTAINER_RT) build -t $(IMAGE_NAME) -f $(DOCKERFILE) .; \
+	fi
+
+clean: ## Remove build artifacts
+	rm -f $(DISTDIR)/*
+
+$(DISTDIR):
+	mkdir -p $(DISTDIR)
