@@ -12,7 +12,7 @@ ifeq ($(CONTAINER_RT),)
 endif
 
 # Assembler flags
-ASM_FLAGS       := /p /ov+ /oos+ /oop+ /oow+ /ooz+ /ooaq+ /oosq+ /oomq+ /ow+
+ASM_FLAGS 		:= /p /j src/\* /ov+ /oos+ /oop+ /oow+ /ooz+ /ooaq+ /oosq+ /oomq+ /ow+
 
 # Container paths & volumes
 CONTAINER_APP   := /home/wineuser/app
