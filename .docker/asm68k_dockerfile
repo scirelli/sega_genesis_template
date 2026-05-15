@@ -1,4 +1,4 @@
-FROM scottyhardy/docker-wine:latest
+FROM --platform=linux/amd64 scottyhardy/docker-wine:latest
 
 COPY ./Assembler/* /home/wineuser/app/
 
