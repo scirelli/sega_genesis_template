@@ -2,6 +2,13 @@
 dist/*
 !dist/.gitkeep
 
+# Assembler preference (per-developer)
+.make_config
+
+# vasm build artifacts
+Assembler/vasm/
+Assembler/vasmm68k_mot
+
 # Prerequisites
 *.d
 

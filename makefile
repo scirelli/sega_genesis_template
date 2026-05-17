@@ -6,50 +6,96 @@ SRCDIR          := src
 DISTDIR         := dist
 ASMDIR          := Assembler
 
-# WINE_MODE: native | container | (empty = auto-detect)
-# Override to bypass auto-detection:
-#   make WINE_MODE=native    — use wine from PATH
-#   make WINE_MODE=container — use the container
-WINE_MODE       ?=
+# Load saved assembler preference
+-include .make_config
 
-# Auto-detect: prefer native wine, fall back to container
-ifeq ($(WINE_MODE),)
-  ifneq ($(shell command -v wine 2>/dev/null),)
-    _WINE_MODE := native
-  else
-    _WINE_MODE := container
+# Backward compat: map old WINE_MODE values to ASM_MODE
+ifdef WINE_MODE
+  ifndef ASM_MODE
+    ifeq ($(WINE_MODE),native)
+      ASM_MODE := wine
+    else
+      ASM_MODE := $(WINE_MODE)
+    endif
   endif
-else
-  _WINE_MODE := $(WINE_MODE)
 endif
 
-# --- Container setup (only needed in container mode) ---
-ifeq ($(_WINE_MODE),container)
+# ASM_MODE: vasm | wine | container | (empty = auto-detect)
+ASM_MODE        ?=
+
+# Auto-detect assembler
+ifeq ($(ASM_MODE),)
+  ifneq ($(or $(shell command -v vasmm68k_mot 2>/dev/null),$(wildcard $(ASMDIR)/vasmm68k_mot)),)
+    _ASM_MODE := vasm
+  else ifneq ($(shell command -v wine 2>/dev/null),)
+    _ASM_MODE := wine
+  else ifneq ($(shell command -v podman 2>/dev/null || command -v docker 2>/dev/null),)
+    _ASM_MODE := container
+  else
+    _ASM_MODE := vasm
+  endif
+else
+  _ASM_MODE := $(ASM_MODE)
+endif
+
+# --- vasm setup ---
+ifeq ($(_ASM_MODE),vasm)
+  VASM := $(or $(shell command -v vasmm68k_mot 2>/dev/null),$(ASMDIR)/vasmm68k_mot)
+  VASM_FLAGS := -Fbin -m68000 -opt-allbra -opt-speed -opt-lsl -opt-pea -opt-movem -I $(SRCDIR)/
+  RUN = $(VASM)
+  ASM_ARGS = $(VASM_FLAGS) -o $(DISTDIR)/$(TARGET).bin -L $(DISTDIR)/$(TARGET).lst $(SRCDIR)/$(TARGET).s
+  ASM_ARGS_DEBUG = $(VASM_FLAGS) -o $(DISTDIR)/$(TARGET).db.bin -L $(DISTDIR)/$(TARGET).db.lst $(SRCDIR)/$(TARGET).s
+  _IMAGE_DEP :=
+  _VASM_DEP := $(VASM)
+endif
+
+# --- wine (native) setup ---
+ifeq ($(_ASM_MODE),wine)
+  ifneq ($(shell command -v wine 2>/dev/null),)
+    RUN = cd $(CURDIR) && wine $(CURDIR)/$(ASMDIR)/asm68k.exe
+  else
+    $(error wine not found in PATH — install wine or use: make ASM_MODE=vasm)
+  endif
+  ASM_FLAGS := /p /j src/\* /ov+ /oos+ /oop+ /oow+ /ooz+ /ooaq+ /oosq+ /oomq+ /ow+
+  ASM_ARGS = $(ASM_FLAGS) src/$(TARGET).s,dist/$(TARGET).bin,dist/$(TARGET).sym
+  ASM_ARGS_DEBUG = $(ASM_FLAGS) src/$(TARGET).s,dist/$(TARGET).db.bin,dist/$(TARGET).db.sym
+  _IMAGE_DEP :=
+  _VASM_DEP :=
+endif
+
+# --- container setup ---
+ifeq ($(_ASM_MODE),container)
   CONTAINER_RT  := $(shell command -v podman 2>/dev/null || command -v docker 2>/dev/null)
   ifeq ($(CONTAINER_RT),)
-    $(error Neither podman nor docker found in PATH — install one or set WINE_MODE=native)
+    $(error Neither podman nor docker found in PATH — install one or set ASM_MODE=vasm)
   endif
 
   CONTAINER_APP := /home/wineuser/app
   VOLUMES       := --volume "$(CURDIR)/$(SRCDIR):$(CONTAINER_APP)/src" \
                    --volume "$(CURDIR)/$(DISTDIR):$(CONTAINER_APP)/dist"
   RUN           = $(CONTAINER_RT) run --rm -t $(VOLUMES) $(IMAGE_NAME) asm68k.exe
+  ASM_FLAGS     := /p /j src/\* /ov+ /oos+ /oop+ /oow+ /ooz+ /ooaq+ /oosq+ /oomq+ /ow+
+  ASM_ARGS      = $(ASM_FLAGS) src/$(TARGET).s,dist/$(TARGET).bin,dist/$(TARGET).sym
+  ASM_ARGS_DEBUG = $(ASM_FLAGS) src/$(TARGET).s,dist/$(TARGET).db.bin,dist/$(TARGET).db.sym
   _IMAGE_DEP    := image
-else
-  RUN           = cd $(CURDIR) && wine $(CURDIR)/$(ASMDIR)/asm68k.exe
-  _IMAGE_DEP    :=
+  _VASM_DEP     :=
 endif
 
-# Assembler flags
-ASM_FLAGS 		:= /p /j src/\* /ov+ /oos+ /oop+ /oow+ /ooz+ /ooaq+ /oosq+ /oomq+ /ow+
+# ---------- vasm download/build ----------
 
-# asm68k argument format: [options] source,binary,symbol
-ASM_ARGS        = $(ASM_FLAGS) src/$(TARGET).s,dist/$(TARGET).bin,dist/$(TARGET).sym
-ASM_ARGS_DEBUG  = $(ASM_FLAGS) src/$(TARGET).s,dist/$(TARGET).db.bin,dist/$(TARGET).db.sym
+VASM_URL := http://sun.hasenbraten.de/vasm/release/vasm.tar.gz
+
+$(ASMDIR)/vasmm68k_mot:
+	@echo "=== Downloading vasm source ==="
+	curl -L $(VASM_URL) | tar xz -C $(ASMDIR)
+	@echo "=== Building vasmm68k_mot ==="
+	$(MAKE) -C $(ASMDIR)/vasm CPU=m68k SYNTAX=mot
+	cp $(ASMDIR)/vasm/vasmm68k_mot $(ASMDIR)/vasmm68k_mot
+	@echo "=== vasm ready: $(ASMDIR)/vasmm68k_mot ==="
 
 # ---------- Targets ----------
 
-.PHONY: help all emu debug debugemu clean image wine-info
+.PHONY: help all emu debug debugemu clean image setup setup-vasm asm-info convert
 
 help: ## Show available targets
 	@echo "Usage: make [target] [TARGET=<stem>]  (default TARGET=$(TARGET))"
@@ -57,43 +103,65 @@ help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
 	@echo ""
-	@echo "  WINE_MODE=$(_WINE_MODE) (override with WINE_MODE=native|container)"
+	@echo "  ASM_MODE=$(_ASM_MODE) (override with ASM_MODE=vasm|wine|container)"
 
 all: $(DISTDIR)/$(TARGET).bin ## Build ROM binary
 
 emu: $(DISTDIR)/$(TARGET).bin ## Build and run in emulator
 	$(EMU) $(DISTDIR)/$(TARGET).bin
 
-$(DISTDIR)/$(TARGET).bin: $(SRCDIR)/$(TARGET).s | $(DISTDIR) $(_IMAGE_DEP)
+$(DISTDIR)/$(TARGET).bin: $(SRCDIR)/$(TARGET).s | $(DISTDIR) $(_IMAGE_DEP) $(_VASM_DEP)
 	$(RUN) $(ASM_ARGS)
 
 debug: $(DISTDIR)/$(TARGET).db.bin ## Build debug ROM with symbols
 
-$(DISTDIR)/$(TARGET).db.bin: $(SRCDIR)/$(TARGET).s | $(DISTDIR) $(_IMAGE_DEP)
+$(DISTDIR)/$(TARGET).db.bin: $(SRCDIR)/$(TARGET).s | $(DISTDIR) $(_IMAGE_DEP) $(_VASM_DEP)
 	$(RUN) $(ASM_ARGS_DEBUG)
 
 debugemu: $(DISTDIR)/$(TARGET).db.bin ## Debug build + emulator debugger
 	$(EMU) -debug $(DISTDIR)/$(TARGET).db.bin
 
 image: ## Build container image if not present
-ifeq ($(_WINE_MODE),container)
+ifeq ($(_ASM_MODE),container)
 	@if ! $(CONTAINER_RT) image inspect $(IMAGE_NAME) >/dev/null 2>&1; then \
 		echo "Building container image '$(IMAGE_NAME)'..."; \
 		$(CONTAINER_RT) build -t $(IMAGE_NAME) -f $(DOCKERFILE) .; \
 	fi
 else
-	@echo "Skipping — using native wine (WINE_MODE=$(_WINE_MODE))"
+	@echo "Skipping — not using container mode (ASM_MODE=$(_ASM_MODE))"
 endif
 
-wine-info: ## Show detected wine mode and paths
-	@echo "WINE_MODE=$(_WINE_MODE)"
-ifeq ($(_WINE_MODE),container)
-	@echo "CONTAINER_RT=$(CONTAINER_RT)"
-	@echo "IMAGE_NAME=$(IMAGE_NAME)"
-else
+setup: ## Interactive assembler selection (saved to .make_config)
+	@echo "Select assembler mode:"
+	@echo "  1) vasm      — vasmm68k_mot (native, no wine needed)"
+	@echo "  2) wine      — wine + asm68k.exe (requires wine in PATH)"
+	@echo "  3) container — Docker/Podman + wine + asm68k.exe"
+	@printf "Choice [1-3]: "; \
+	read c; \
+	case $$c in \
+	  1) echo "ASM_MODE=vasm" > .make_config ;; \
+	  2) echo "ASM_MODE=wine" > .make_config ;; \
+	  3) echo "ASM_MODE=container" > .make_config ;; \
+	  *) echo "Invalid choice"; exit 1 ;; \
+	esac
+	@echo "Saved to .make_config"
+
+setup-vasm: $(ASMDIR)/vasmm68k_mot ## Download and build vasm from source
+
+asm-info: ## Show detected assembler mode and paths
+	@echo "ASM_MODE=$(_ASM_MODE)"
+ifeq ($(_ASM_MODE),vasm)
+	@echo "VASM=$(VASM)"
+else ifeq ($(_ASM_MODE),wine)
 	@echo "WINE=$(shell command -v wine 2>/dev/null)"
 	@echo "ASM68K=$(CURDIR)/$(ASMDIR)/asm68k.exe"
+else ifeq ($(_ASM_MODE),container)
+	@echo "CONTAINER_RT=$(CONTAINER_RT)"
+	@echo "IMAGE_NAME=$(IMAGE_NAME)"
 endif
+
+convert: ## Convert asm68k source files to vasm syntax
+	python3 tools/asm68k_to_vasm.py $(SRCDIR)/ -o $(SRCDIR)/
 
 clean: ## Remove build artifacts
 	rm -f $(DISTDIR)/*

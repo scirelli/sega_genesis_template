@@ -48,12 +48,12 @@ MDSCTRL3:	EQU	$00A1001f
 ;		USEFUL MACROS
 ;----------------------------------------------------------
 WAITDMA:	MACRO
-@LOOP\@	 	BTST	#1,VDP_STATUS+1
-	 	BNE.S	@LOOP\@
+.LOOP\@	 	BTST	#1,VDP_STATUS+1
+	 	BNE.S	.LOOP\@
 		ENDM
 
 WREG:		MACRO
-		MOVE	#$8000!((\1)<<8)!((\2)&$FF),VDP_CONTROL
+		MOVE	#$8000|((\1)<<8)|((\2)&$FF),VDP_CONTROL
 		ENDM
 
 WREGR:		MACRO
@@ -77,8 +77,8 @@ WDESTR:		MACRO
 
 WAITVBI:	MACRO
 		MOVE.W	#0,VBLANKON
-@LOOP\@:	CMP.W	#0,VBLANKON
-		BEQ.S	@LOOP\@
+.LOOP\@:	CMP.W	#0,VBLANKON
+		BEQ.S	.LOOP\@
 		ENDM
 
 DMADUMP:	MACRO
@@ -157,26 +157,26 @@ TITLE:		DC.B	"GAMEHUT TEST SHELL                              "
 CODESTART:	MOVE.W	#$2700,SR
 		MOVE.W	#1,HOTSTART
 		TST.L	$A10008
-		BNE.S	@HOTSTART
+		BNE.S	.HOTSTART
 		TST.W	$A1000C
-		BNE.S	@HOTSTART
+		BNE.S	.HOTSTART
 		CLR.W	HOTSTART
 		MOVE.B	$A10001,D0
 		ANDI.B	#$F,D0
-		BEQ.S	@J1
+		BEQ.S	.J1
 		MOVE.L	#'SEGA',$A14000
-@J1:
+.J1:
 		MOVE.L  #$C0000000,$C00004
 		CLR.L	D1
 		MOVE.W  #$3F,D0
-@CLR1:		MOVE.W	D1,$C00000
-		DBF	D0,@CLR1
+.CLR1:		MOVE.W	D1,$C00000
+		DBF	D0,.CLR1
 		LEA.L	$FFFF0000,A0
 		MOVE.W	#$3FFF,D0
-@CLR2:		MOVE.L	D1,(A0)+
-		DBF	D0,@CLR2
+.CLR2:		MOVE.L	D1,(A0)+
+		DBF	D0,.CLR2
 
-@HOTSTART:	LEA.L	ENDSTACK,SP		;SET UP STACK POINTER
+.HOTSTART:	LEA.L	ENDSTACK,SP		;SET UP STACK POINTER
 		BSR.W   INIT_Z80
 		MOVE.W	#$2300,SR
 
@@ -196,15 +196,15 @@ CODESTART:	MOVE.W	#$2700,SR
 		WREG	0,%00000100		;DISABLE HBLANK
 
 		TST.W	HOTSTART		;WAS IT A 'HOT START'?
-		BNE.S	@HOT
+		BNE.S	.HOT
 ;HARD RESET CODE HERE IF NEEDED
-		BRA.S	@SKIP
+		BRA.S	.SKIP
 
-@HOT:		MOVE.W	#50-1,D0		;STOP RESET BUG
-@PAUSE:		WAITVBI
-		DBRA	D0,@PAUSE
+.HOT:		MOVE.W	#50-1,D0		;STOP RESET BUG
+.PAUSE:		WAITVBI
+		DBRA	D0,.PAUSE
 
-@SKIP:		JSR	JOYINIT			;INITIALIZE JOYPADS
+.SKIP:		JSR	JOYINIT			;INITIALIZE JOYPADS
 
 		JSR	SETUPRAM		;COPY IN PERMANENT RAM ROUTINES
 
@@ -283,7 +283,7 @@ CLEARVRAM:	WDEST	VRAMW,$0000
 		MOVE.L	#$800-1,D0
 		MOVEQ.L	#$0,D1
 		LEA.L	VDP_DATA,A0
-@LOOP:		MOVE.L	D1,(A0)
+.LOOP:		MOVE.L	D1,(A0)
 		MOVE.L	D1,(A0)
 		MOVE.L	D1,(A0)
 		MOVE.L	D1,(A0)
@@ -291,7 +291,7 @@ CLEARVRAM:	WDEST	VRAMW,$0000
 		MOVE.L	D1,(A0)
 		MOVE.L	D1,(A0)
 		MOVE.L	D1,(A0)
-		DBRA	D0,@LOOP
+		DBRA	D0,.LOOP
 		RTS
 
 ;----------------------------------------------------------
@@ -304,8 +304,8 @@ CLEARVRAM2:	MOVE.L	A0,D1
 		LSR.L	#2,D0
 		SUB.L	#1,D0
 		LEA.L	VDP_DATA,A0
-@LOOP:		MOVE.L	D1,(A0)
-		DBRA	D0,@LOOP
+.LOOP:		MOVE.L	D1,(A0)
+		DBRA	D0,.LOOP
 		RTS
 
 ;----------------------------------------------------------
@@ -315,8 +315,8 @@ CLEARCRAM:	WDEST	CRAMW,$0000
 		MOVE.L	#64-1,D0
 		MOVEQ.L	#0,D1
 		LEA.L	VDP_DATA,A0
-@LOOP:		MOVE.W	D1,(A0)
-		DBRA	D0,@LOOP
+.LOOP:		MOVE.W	D1,(A0)
+		DBRA	D0,.LOOP
 		RTS
 
 ;----------------------------------------------------------
@@ -326,8 +326,8 @@ CLEARVSRAM:	WDEST	VSRAMW,$0000
 		MOVE.L	#128/2-1,D0
 		MOVEQ.L	#0,D1
 		LEA.L	VDP_DATA,A0
-@LOOP:		MOVE.W	D1,(A0)
-		DBRA	D0,@LOOP
+.LOOP:		MOVE.W	D1,(A0)
+		DBRA	D0,.LOOP
 		RTS
 
 ;----------------------------------------------------------
@@ -336,8 +336,8 @@ CLEARVSRAM:	WDEST	VSRAMW,$0000
 CLEARRAM:	LEA.L	STARTVARS,A0
 		MOVE.L	#(ENDVARS-STARTVARS)-1,D0
 		MOVEQ.L	#0,D1
-@LOOP:		MOVE.B	D1,(A0)+
-		DBRA	D0,@LOOP
+.LOOP:		MOVE.B	D1,(A0)+
+		DBRA	D0,.LOOP
 		RTS
 
 ;----------------------------------------------
@@ -349,25 +349,25 @@ INIT_Z80:	MOVE.W	#$100,D0
 		MOVE.W	D0,(A0)
 		MOVE.W	D0,(A1)
 
-@WAIT_Z80:	BTST	#0,(A0)
-		BNE.S	@WAIT_Z80
+.WAIT_Z80:	BTST	#0,(A0)
+		BNE.S	.WAIT_Z80
 
-		LEA.L	@INITCODE,A2
+		LEA.L	.INITCODE,A2
 		LEA.L	Z80RAM,A3
-		MOVE.W	#@CODEEND-@INITCODE-1,D1
+		MOVE.W	#.CODEEND-.INITCODE-1,D1
 
-@LOOP:		MOVE.B	(A2)+,(A3)+
-		DBF	D1,@LOOP
+.LOOP:		MOVE.B	(A2)+,(A3)+
+		DBF	D1,.LOOP
 
 		CLR.W	(A1)
 		CLR.W	(A0)
 		MOVE.W	D0,(A1)
 		RTS
 
-@INITCODE:	DC.W	$AF01,$D91F,$1127,$0021,$2600,$F977,$EDB0,$DDE1
+.INITCODE:	DC.W	$AF01,$D91F,$1127,$0021,$2600,$F977,$EDB0,$DDE1
 		DC.W	$FDE1,$ED47,$ED4F,$D1E1,$F108,$D9C1,$D1E1,$F1F9
 		DC.W	$F3ED,$5636,$E9E9
-@CODEEND:
+.CODEEND:
 
 ;----------------------------------------------------------
 ;		INIT JOY
@@ -390,7 +390,7 @@ JOYINIT:	MOVE.B	#$00,MDSCTRL1
 JOYGET6:	movem.l	d1/d2/d3/d4/d5/a0,-(sp)
 		moveq		#0,d0
 		cmp.w		#$0002,d1
-		bhi			@JOYGET6_ERR
+		bhi			.JOYGET6_ERR
 		add.w		d1,d1
 		move.l	#$00a10003,a0		;joystick data port address
 		move.b	#$40,6(a0,d1.w)	;set TH = output
@@ -403,12 +403,12 @@ JOYGET6:	movem.l	d1/d2/d3/d4/d5/a0,-(sp)
 		nop
 		move.b	$00(a0,d1.w),d2 ; d2 = xxxx|xxxx|? 1 TRG-C TRG-B R L D U
 		cmp.b		#$70,d2			; checking for mouse or other handshaking device
-		beq			@JOYGET6_ERR
+		beq			.JOYGET6_ERR
 		move.b	#$00,(a0,d1.w)	; select [ ? 0 START TRG-A 0 0 D U ]
 		lsl.w		#8,d2				; d2 = ? 1 TRG-C TRG-B R L D U|0 0 0 0 0 0 0 0
 		move.b	$00(a0,d1.w),d2 ;d2 = ? 1 TRG-C TRG-B R L D U|? 0 St TRG-A 0 0 D U
 		cmp.b		#$3f,d2			; checking for nothing connected
-		beq			@JOYGET6_ERR
+		beq			.JOYGET6_ERR
 		move.b	#$40,(a0,d1.w)	; select [ ? 1 TRG-C TRG-B R L D U ]
 		moveq		#0,d3
 		nop
@@ -439,11 +439,11 @@ JOYGET6:	movem.l	d1/d2/d3/d4/d5/a0,-(sp)
 		move.b	#$40,(a0,d1.w)
 
 		cmp.w		d2,d3
-		bne			@JOYGET6_ERR		; nothing connected or unknown device
+		bne			.JOYGET6_ERR		; nothing connected or unknown device
 		cmp.w		d3,d4
-		beq			@JOYGET3_PAD		; regular 3 button controller
+		beq			.JOYGET3_PAD		; regular 3 button controller
 		and.w		#$000f,d4
-		bne			@JOYGET6_ERR
+		bne			.JOYGET6_ERR
 		move.b	d2,d0
 		lsl.w		#4,d0			;d0.w = 0000|? 0 St TA 0 0 D U 0 0 0 0
 		lsr.w		#8,d2			;d2.w = 0000|0000|? 1 TC TB R L D U
@@ -455,8 +455,8 @@ JOYGET6:	movem.l	d1/d2/d3/d4/d5/a0,-(sp)
 		lsl.w		#4,d5			;d5.w	=	MD TX TY TZ 1 1 1 1 0 0 0 0 0 0 0 0
 		or.w		d5,d0			;d0.w = MD TX TY TZ 1 1 1 1 St TA TC TB R L D U
 		or.l		#$80000000,d0	;d0.l=1xxx|xxxx|xxxx|xxxx|MD,TX,TY,TZ,St,TA,TC,TB,R,L,D,U
-		bra			@JOYGET6_ERR
-@JOYGET3_PAD:
+		bra			.JOYGET6_ERR
+.JOYGET3_PAD:
 		move.b	d2,d0
 		lsl.w		#4,d0			;d0.w = 0000|? 0 St TA 0 0 D U 0 0 0 0
 		lsr.w		#8,d2			;d2.w = 0000|0000|? 1 TC TB R L D U
@@ -464,7 +464,7 @@ JOYGET6:	movem.l	d1/d2/d3/d4/d5/a0,-(sp)
 		lsl.b		#2,d0			;d0.w	= 0000|? 0 St TA TC TB R L D U 0 0
 		lsr.w		#2,d0			;d0.w	=	0000|0 0 ? 0|St TA TC TB R L D U
 		and.l		#$000000ff,d0 ;d0.l=0xxx|xxxx|xxxx|xxxx|xxxx|xxxx|St,TA,TC,TB,R,L,D,U
-@JOYGET6_ERR:
+.JOYGET6_ERR:
 		movem.l	(sp)+,d1/d2/d3/d4/d5/a0
 		rts
 
@@ -472,8 +472,8 @@ JOYGET6:	movem.l	d1/d2/d3/d4/d5/a0,-(sp)
 ;		NEW READ JOY
 ;----------------------------------------------------------
 READJOY:	MOVE.W	#$100,Z80REQ
-@L1:		BTST	#0,Z80REQ
-		BNE.S	@L1
+.L1:		BTST	#0,Z80REQ
+		BNE.S	.L1
 
 		MOVE.B	JOYPAD0,JOYPADOLD	;STORE OLD PAD INFO FOR DEBOUNCE IF NEEDED
 
@@ -483,9 +483,9 @@ READJOY:	MOVE.W	#$100,Z80REQ
 		MOVE.W	#0,Z80REQ
 
 		TST.B	D0	  	;DID JOYPAD READ FAIL?
-		BNE.S	@PASS
+		BNE.S	.PASS
 		MOVE.B	#$FF,D0
-@PASS:		MOVE.B	D0,JOYPAD0
+.PASS:		MOVE.B	D0,JOYPAD0
 		RTS
 
 ;----------------------------------------------------------
@@ -522,7 +522,7 @@ EXTINT:		RTE
 ;	ERROR HANDLING CODE
 ;------------------------------
 ERROR:		MOVE.W	#$2700,SR		;TURN OFF INTERUPTS
-@INF:		BRA.S	@INF			;INFINITE LOOP
+.INF:		BRA.S	.INF			;INFINITE LOOP
 
 ;----------------------------------------------------------
 ;		DUMP DATA VIA DMA
@@ -539,13 +539,13 @@ DMADUMPS:	LEA.L	VDP_CONTROL,A1
 		ADD.W	D3,D3
 		MOVE.W	D1,D4
 		ADD.W	D3,D4
-		BEQ.S	@PASS
-		BCS	@TWO
+		BEQ.S	.PASS
+		BCS	.TWO
 
-@PASS:
+.PASS:
  		MOVE.W	#$100,Z80REQ
-@L1:		BTST	#0,Z80REQ
-		BNE.S	@L1
+.L1:		BTST	#0,Z80REQ
+		BNE.S	.L1
 		WREG	01,%01110100		;DMA ENABLE
 
 		JSR	RAMDMA
@@ -557,15 +557,15 @@ DMADUMPS:	LEA.L	VDP_CONTROL,A1
 
 		RTS
 
-@TWO:		SUB.W	D4,D3
+.TWO:		SUB.W	D4,D3
 		LSR.W	#1,D3
 		MOVE.W	D3,D0
 		MOVE.L	D1,D5
 		MOVE.L	D2,D6
 
  		MOVE.W	#$100,Z80REQ
-@L2:		BTST	#0,Z80REQ
-		BNE.S	@L2
+.L2:		BTST	#0,Z80REQ
+		BNE.S	.L2
 		WREG	01,%01110100		;DMA ENABLE
 
 		JSR	RAMDMA
@@ -630,23 +630,23 @@ RAMVERTC:	LEA.L	DMAREQ,A0
 
 		MOVE.W	#$8174,(A2)		;DMA ENABLE
 
-@BACK:		MOVE.W	(A0)+,D0
-		BGE.S	@CHECK
-@L1:		MOVE.W	D0,(A2)			;FIRST PASS
+.BACK:		MOVE.W	(A0)+,D0
+		BGE.S	.CHECK
+.L1:		MOVE.W	D0,(A2)			;FIRST PASS
 		MOVE.L	(A0)+,(A2)		;SIZE/SOURCE
 		MOVE.L	(A0)+,(A2)		;SOURCE/SOURCE
 		MOVE.W	(A0)+,(A2)		;DEST
 		MOVE.W	(A0)+,(A2)		;DEST/MODE
 
 		MOVE.W	(A0)+,D0		;SIZE
-		BLT.S	@L1
+		BLT.S	.L1
 
-@CHECK:		BEQ.S	@DONE			;END
+.CHECK:		BEQ.S	.DONE			;END
 		OR.W	D1,D0
 		MOVE.W	D0,(A2)
-		BRA.S	@BACK
+		BRA.S	.BACK
 
-@DONE:		MOVE.L	#0,DMAREQ
+.DONE:		MOVE.L	#0,DMAREQ
 
 		MOVE.W	#$8164,(A2)		;DMA DISABLE
 
@@ -665,8 +665,8 @@ SETUPRAM:	MOVE.L	#$94009300,QSIZE
 		LEA.L	RAMDMA,A1
 
 		MOVE.W	#RAMDMAEND-RAMDMAC-1,D0
-@L1:		MOVE.B	(A0)+,(A1)+
-		DBRA	D0,@L1
+.L1:		MOVE.B	(A0)+,(A1)+
+		DBRA	D0,.L1
 		RTS
 
 RAMDMAF:	EQU	RAMDMA+(RAMDMAFC-RAMDMAC)
@@ -677,26 +677,26 @@ RAMVERT:	EQU	RAMDMA+(RAMVERTC-RAMDMAC)
 ;----------------------------------------------------------
 SETPAL1:	MOVE.W	#16-1,D0
 		LEA.L	PALETTES,A1
-@LOOP1:		MOVE.W	(A0)+,(A1)+
-		DBRA	D0,@LOOP1
+.LOOP1:		MOVE.W	(A0)+,(A1)+
+		DBRA	D0,.LOOP1
 		RTS
 
 SETPAL2:	MOVE.W	#16-1,D0
 		LEA.L	PALETTES+32,A1
-@LOOP1:		MOVE.W	(A0)+,(A1)+
-		DBRA	D0,@LOOP1
+.LOOP1:		MOVE.W	(A0)+,(A1)+
+		DBRA	D0,.LOOP1
 		RTS
 
 SETPAL3:	MOVE.W	#16-1,D0
 		LEA.L	PALETTES+64,A1
-@LOOP1:		MOVE.W	(A0)+,(A1)+
-		DBRA	D0,@LOOP1
+.LOOP1:		MOVE.W	(A0)+,(A1)+
+		DBRA	D0,.LOOP1
 		RTS
 
 SETPAL4:	MOVE.W	#16-1,D0
 		LEA.L	PALETTES+96,A1
-@LOOP1:		MOVE.W	(A0)+,(A1)+
-		DBRA	D0,@LOOP1
+.LOOP1:		MOVE.W	(A0)+,(A1)+
+		DBRA	D0,.LOOP1
 		RTS
 
 ;----------------------------------------------------------
@@ -705,8 +705,8 @@ SETPAL4:	MOVE.W	#16-1,D0
 DUMPCOLS:	MOVEM.L	D0-D4,-(SP)
 
 		MOVE.W	#$100,Z80REQ
-@L1:		BTST	#0,Z80REQ
-		BNE.S	@L1
+.L1:		BTST	#0,Z80REQ
+		BNE.S	.L1
 		WREG	01,%01110100		;DMA ENABLE
 		LEA.L	VDP_CONTROL,A1
 		DMAFPAL	PALETTES,128,$0000
