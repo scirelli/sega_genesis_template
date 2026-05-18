@@ -98,9 +98,9 @@ $(ASMDIR)/vasmm68k_mot:
 .PHONY: help all emu debug debugemu clean image setup setup-vasm asm-info convert
 
 help: ## Show available targets
-	@echo "Usage: make [target] [TARGET=<stem>]  (default TARGET=$(TARGET))"
+	@echo "Usage: make [target] [TARGET=<stem>]  (default TARGET=$(TARGET)) [ASM_MODE=<vasm | wine | container>] (default ASM_MODE=auto-detect)"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | \
+	@grep -hE '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
 	@echo ""
 	@echo "  ASM_MODE=$(_ASM_MODE) (override with ASM_MODE=vasm|wine|container)"
