@@ -2,6 +2,14 @@
 dist/*
 !dist/.gitkeep
 
+# Debug build output
+debug/
+
+# MAME runtime directories (in case they end up in project root)
+cfg/
+nvram/
+snap/
+
 # Assembler preference (per-developer)
 .make_config
 

@@ -4,6 +4,7 @@ DOCKERFILE      := .docker/asm68k_dockerfile
 EMU             ?= mame genesis -cart
 SRCDIR          := src
 DISTDIR         := dist
+DEBUGDIR        := debug
 ASMDIR          := Assembler
 
 # Load saved assembler preference
@@ -44,7 +45,7 @@ ifeq ($(_ASM_MODE),vasm)
   VASM_FLAGS := -Fbin -m68000 -opt-allbra -opt-speed -opt-lsl -opt-pea -opt-movem -I $(SRCDIR)/
   RUN = $(VASM)
   ASM_ARGS = $(VASM_FLAGS) -o $(DISTDIR)/$(TARGET).bin -L $(DISTDIR)/$(TARGET).lst $(SRCDIR)/$(TARGET).s
-  ASM_ARGS_DEBUG = $(VASM_FLAGS) -o $(DISTDIR)/$(TARGET).db.bin -L $(DISTDIR)/$(TARGET).db.lst $(SRCDIR)/$(TARGET).s
+  ASM_ARGS_DEBUG = $(VASM_FLAGS) -o $(DEBUGDIR)/$(TARGET).db.bin -L $(DEBUGDIR)/$(TARGET).db.lst $(SRCDIR)/$(TARGET).s
   _IMAGE_DEP :=
   _VASM_DEP := $(VASM)
 endif
@@ -58,7 +59,7 @@ ifeq ($(_ASM_MODE),wine)
   endif
   ASM_FLAGS := /p /j src/\* /ov+ /oos+ /oop+ /oow+ /ooz+ /ooaq+ /oosq+ /oomq+ /ow+
   ASM_ARGS = $(ASM_FLAGS) src/$(TARGET).s,dist/$(TARGET).bin,dist/$(TARGET).sym
-  ASM_ARGS_DEBUG = $(ASM_FLAGS) src/$(TARGET).s,dist/$(TARGET).db.bin,dist/$(TARGET).db.sym
+  ASM_ARGS_DEBUG = $(ASM_FLAGS) src/$(TARGET).s,debug/$(TARGET).db.bin,debug/$(TARGET).db.sym
   _IMAGE_DEP :=
   _VASM_DEP :=
 endif
@@ -72,11 +73,12 @@ ifeq ($(_ASM_MODE),container)
 
   CONTAINER_APP := /home/wineuser/app
   VOLUMES       := --volume "$(CURDIR)/$(SRCDIR):$(CONTAINER_APP)/src" \
-                   --volume "$(CURDIR)/$(DISTDIR):$(CONTAINER_APP)/dist"
+                   --volume "$(CURDIR)/$(DISTDIR):$(CONTAINER_APP)/dist" \
+                   --volume "$(CURDIR)/$(DEBUGDIR):$(CONTAINER_APP)/debug"
   RUN           = $(CONTAINER_RT) run --rm -t $(VOLUMES) $(IMAGE_NAME) asm68k.exe
   ASM_FLAGS     := /p /j src/\* /ov+ /oos+ /oop+ /oow+ /ooz+ /ooaq+ /oosq+ /oomq+ /ow+
   ASM_ARGS      = $(ASM_FLAGS) src/$(TARGET).s,dist/$(TARGET).bin,dist/$(TARGET).sym
-  ASM_ARGS_DEBUG = $(ASM_FLAGS) src/$(TARGET).s,dist/$(TARGET).db.bin,dist/$(TARGET).db.sym
+  ASM_ARGS_DEBUG = $(ASM_FLAGS) src/$(TARGET).s,debug/$(TARGET).db.bin,debug/$(TARGET).db.sym
   _IMAGE_DEP    := image
   _VASM_DEP     :=
 endif
@@ -108,18 +110,18 @@ help: ## Show available targets
 all: $(DISTDIR)/$(TARGET).bin ## Build ROM binary
 
 emu: $(DISTDIR)/$(TARGET).bin ## Build and run in emulator
-	$(EMU) $(DISTDIR)/$(TARGET).bin
+	$(EMU) $(DISTDIR)/$(TARGET).bin -cfg_directory $(DISTDIR)/cfg -nvram_directory $(DISTDIR)/nvram -snapshot_directory $(DISTDIR)/snap
 
 $(DISTDIR)/$(TARGET).bin: $(SRCDIR)/$(TARGET).s | $(DISTDIR) $(_IMAGE_DEP) $(_VASM_DEP)
 	$(RUN) $(ASM_ARGS)
 
-debug: $(DISTDIR)/$(TARGET).db.bin ## Build debug ROM with symbols
+debug: $(DEBUGDIR)/$(TARGET).db.bin ## Build debug ROM with symbols
 
-$(DISTDIR)/$(TARGET).db.bin: $(SRCDIR)/$(TARGET).s | $(DISTDIR) $(_IMAGE_DEP) $(_VASM_DEP)
+$(DEBUGDIR)/$(TARGET).db.bin: $(SRCDIR)/$(TARGET).s | $(DEBUGDIR) $(_IMAGE_DEP) $(_VASM_DEP)
 	$(RUN) $(ASM_ARGS_DEBUG)
 
-debugemu: $(DISTDIR)/$(TARGET).db.bin ## Debug build + emulator debugger
-	$(EMU) -debug $(DISTDIR)/$(TARGET).db.bin
+debugemu: $(DEBUGDIR)/$(TARGET).db.bin ## Debug build + emulator debugger
+	$(EMU) $(DEBUGDIR)/$(TARGET).db.bin -debug -cfg_directory $(DEBUGDIR)/cfg -nvram_directory $(DEBUGDIR)/nvram -snapshot_directory $(DEBUGDIR)/snap
 
 image: ## Build container image if not present
 ifeq ($(_ASM_MODE),container)
@@ -165,6 +167,10 @@ convert: ## Convert asm68k source files to vasm syntax
 
 clean: ## Remove build artifacts
 	rm -f $(DISTDIR)/*
+	rm -rf $(DEBUGDIR)
 
 $(DISTDIR):
 	mkdir -p $(DISTDIR)
+
+$(DEBUGDIR):
+	mkdir -p $(DEBUGDIR)
