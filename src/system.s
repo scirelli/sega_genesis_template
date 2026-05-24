@@ -48,25 +48,26 @@ MDSCTRL3:	EQU	$00A1001f
 ;		USEFUL MACROS
 ;----------------------------------------------------------
 WAITDMA:	MACRO
-.LOOP\@	 	BTST	#1,VDP_STATUS+1
+.LOOP\@
+        BTST	#1,VDP_STATUS+1
 	 	BNE.S	.LOOP\@
 		ENDM
 
-WREG:		MACRO
+WREG:	MACRO
 		MOVE	#$8000|((\1)<<8)|((\2)&$FF),VDP_CONTROL
 		ENDM
 
-WREGR:		MACRO
+WREGR:	MACRO
 	 	AND	#$00FF,\2
 	 	OR	#VDP_R\1,\2
 	 	MOVE	\2,VDP_CONTROL
 		ENDM
 
-WDEST:		MACRO
+WDEST:	MACRO
 	 	MOVE.L	#\1+((\2)&$3FFF)<<16+(\2)>>14,VDP_CONTROL
 		ENDM
 
-WDESTR:		MACRO
+WDESTR: MACRO
 		ROL.L	#2,\2
 		ROR	#2,\2
 	 	SWAP	\2
@@ -75,9 +76,10 @@ WDESTR:		MACRO
 	 	MOVE.L	\2,VDP_CONTROL
 		ENDM
 
-WAITVBI:	MACRO
+WAITVBI:    MACRO
 		MOVE.W	#0,VBLANKON
-.LOOP\@:	CMP.W	#0,VBLANKON
+.LOOP\@:
+        CMP.W	#0,VBLANKON
 		BEQ.S	.LOOP\@
 		ENDM
 
@@ -100,21 +102,21 @@ DMAFPAL:	MACRO
 ;----------------------------------------------------------
 ;		SYSTEM VARIABLES
 ;----------------------------------------------------------
-		RSSET	SYSTEMRAM	;POINT AT SYSTEM RAM (AFTER STACK)
+    RSSET	SYSTEMRAM	;POINT AT SYSTEM RAM (AFTER STACK)
 STARTVARS:	RS.B	0		;POINTER TO START OF VARS
 HOTSTART:	RS.W	1		;HOT START FLAG
 VBLANKON:	RS.W	1		;FLAG TO SAY WHEN VERTICAL BLANK CODE IS FINISHED
 VBIVECTOR:	RS.L	1		;LOCATION OF VBLANK ROUTINE
 JOYPAD0:	RS.B	1		;JOYPAD INFORMATION
 JOYPADOLD:	RS.B	1		;JOYPAD INFORMATION FROM LAST FRAME
-		RS.W	1		;QUICK SOURCE UNUSED
+	    	RS.W	1		;QUICK SOURCE UNUSED
 QSOURCE:	RS.L	1		;QUICK SOURCE
-		RS.W	1		;QUICK SOURCE
+		    RS.W	1		;QUICK SOURCE
 QSIZE:		RS.L	1		;QUICK SIZE RAM
 DMAREQ:		RS.W	DMANUM*7	;DMA REQUEST STORE
-		RS.L	1		;OVERRUN
+		    RS.L	1		;OVERRUN
 RAMDMA:		RS.B	200		;RAM DMAS
-PALETTES:	RS.W	16*4		;PALETTE ON SCREEN
+PALETTES:	RS.W	16*4	;PALETTE ON SCREEN
 
 USERRAM:	RS.B	0
 
@@ -137,9 +139,10 @@ USERRAM:	RS.B	0
 		DC.L	ERROR
 		ENDR
 
-CARTRIDGEDATA:	DC.B	"SEGA GENESIS    "
-		DC.B	"GAMEHUT 2018.MAR"
-TITLE:		DC.B	"GAMEHUT TEST SHELL                              "
+CARTRIDGEDATA:
+        DC.B	"SEGA GENESIS    "
+        DC.B	"GAMEHUT 2018.MAR"
+TITLE:	DC.B	"GAMEHUT TEST SHELL                              "
 		DC.B	"GAMEHUT TEST SHELL                              "
 		DC.B	"GH 00-0001 -01"	;PRODUCT NO;VERSION
 		DC.W	0			;CHECKSUM
@@ -154,7 +157,8 @@ TITLE:		DC.B	"GAMEHUT TEST SHELL                              "
 ;----------------------------------------------------------
 ;	SYSTEM INIT
 ;----------------------------------------------------------
-CODESTART:	MOVE.W	#$2700,SR
+CODESTART:
+        MOVE.W	#$2700,SR
 		MOVE.W	#1,HOTSTART
 		TST.L	$A10008
 		BNE.S	.HOTSTART
@@ -176,7 +180,8 @@ CODESTART:	MOVE.W	#$2700,SR
 .CLR2:		MOVE.L	D1,(A0)+
 		DBF	D0,.CLR2
 
-.HOTSTART:	LEA.L	ENDSTACK,SP		;SET UP STACK POINTER
+.HOTSTART:
+        LEA.L	ENDSTACK,SP		;SET UP STACK POINTER
 		BSR.W   INIT_Z80
 		MOVE.W	#$2300,SR
 
@@ -200,11 +205,11 @@ CODESTART:	MOVE.W	#$2700,SR
 ;HARD RESET CODE HERE IF NEEDED
 		BRA.S	.SKIP
 
-.HOT:		MOVE.W	#50-1,D0		;STOP RESET BUG
-.PAUSE:		WAITVBI
+.HOT:   MOVE.W	#50-1,D0		;STOP RESET BUG
+.PAUSE: WAITVBI
 		DBRA	D0,.PAUSE
 
-.SKIP:		JSR	JOYINIT			;INITIALIZE JOYPADS
+.SKIP:  JSR	JOYINIT			;INITIALIZE JOYPADS
 
 		JSR	SETUPRAM		;COPY IN PERMANENT RAM ROUTINES
 
@@ -251,7 +256,8 @@ CODESTART:	MOVE.W	#$2700,SR
 ;		SETUP VIDEO FOR 40 COLUMNS AND
 ;		28 LINES (320x224).
 ;----------------------------------------------------------
-INIT_VDP_REG:	WREG	15,%00000010		;ALWAYS ASSUME WORD INC
+INIT_VDP_REG:
+        WREG	15,%00000010		;ALWAYS ASSUME WORD INC
 
 		WREG	00,%00000100		;INTERUPTS OFF
 		WREG	01,%00000100		;SCREEN SETUP
@@ -279,11 +285,13 @@ INIT_VDP_REG:	WREG	15,%00000010		;ALWAYS ASSUME WORD INC
 ;----------------------------------------------------------
 ;		CLEAR VRAM TO 0
 ;----------------------------------------------------------
-CLEARVRAM:	WDEST	VRAMW,$0000
+CLEARVRAM:
+        WDEST	VRAMW,$0000
 		MOVE.L	#$800-1,D0
 		MOVEQ.L	#$0,D1
 		LEA.L	VDP_DATA,A0
-.LOOP:		MOVE.L	D1,(A0)
+.LOOP:
+        MOVE.L	D1,(A0)
 		MOVE.L	D1,(A0)
 		MOVE.L	D1,(A0)
 		MOVE.L	D1,(A0)
@@ -298,65 +306,76 @@ CLEARVRAM:	WDEST	VRAMW,$0000
 ;		CLEAR VRAM FROM A0
 ;		LENGTH D0 TO 0
 ;----------------------------------------------------------
-CLEARVRAM2:	MOVE.L	A0,D1
+CLEARVRAM2:
+        MOVE.L	A0,D1
 		WDESTR	VRAMW,D1
 		MOVEQ.L	#$0,D1
 		LSR.L	#2,D0
 		SUB.L	#1,D0
 		LEA.L	VDP_DATA,A0
-.LOOP:		MOVE.L	D1,(A0)
+.LOOP:
+        MOVE.L	D1,(A0)
 		DBRA	D0,.LOOP
 		RTS
 
 ;----------------------------------------------------------
 ;		CLEAR COLOUR RAM (CRAM) TO 0
 ;----------------------------------------------------------
-CLEARCRAM:	WDEST	CRAMW,$0000
+CLEARCRAM:
+        WDEST	CRAMW,$0000
 		MOVE.L	#64-1,D0
 		MOVEQ.L	#0,D1
 		LEA.L	VDP_DATA,A0
-.LOOP:		MOVE.W	D1,(A0)
+.LOOP:
+        MOVE.W	D1,(A0)
 		DBRA	D0,.LOOP
 		RTS
 
 ;----------------------------------------------------------
 ;		CLEAR VIDEO RAM (VSRAM) TO 0
 ;----------------------------------------------------------
-CLEARVSRAM:	WDEST	VSRAMW,$0000
+CLEARVSRAM:
+        WDEST	VSRAMW,$0000
 		MOVE.L	#128/2-1,D0
 		MOVEQ.L	#0,D1
 		LEA.L	VDP_DATA,A0
-.LOOP:		MOVE.W	D1,(A0)
+.LOOP:
+        MOVE.W	D1,(A0)
 		DBRA	D0,.LOOP
 		RTS
 
 ;----------------------------------------------------------
 ;		CLEAR USER RAM TO 0
 ;----------------------------------------------------------
-CLEARRAM:	LEA.L	STARTVARS,A0
+CLEARRAM:
+        LEA.L	STARTVARS,A0
 		MOVE.L	#(ENDVARS-STARTVARS)-1,D0
 		MOVEQ.L	#0,D1
-.LOOP:		MOVE.B	D1,(A0)+
+.LOOP:
+        MOVE.B	D1,(A0)+
 		DBRA	D0,.LOOP
 		RTS
 
 ;----------------------------------------------
 ; 		INITIALIZE THE Z80
 ;----------------------------------------------
-INIT_Z80:	MOVE.W	#$100,D0
+INIT_Z80:
+        MOVE.W	#$100,D0
 		LEA.L	Z80REQ,A0
 		LEA.L	Z80RES,A1
 		MOVE.W	D0,(A0)
 		MOVE.W	D0,(A1)
 
-.WAIT_Z80:	BTST	#0,(A0)
+.WAIT_Z80:
+        BTST	#0,(A0)
 		BNE.S	.WAIT_Z80
 
 		LEA.L	.INITCODE,A2
 		LEA.L	Z80RAM,A3
 		MOVE.W	#.CODEEND-.INITCODE-1,D1
 
-.LOOP:		MOVE.B	(A2)+,(A3)+
+.LOOP:
+        MOVE.B	(A2)+,(A3)+
 		DBF	D1,.LOOP
 
 		CLR.W	(A1)
@@ -364,7 +383,8 @@ INIT_Z80:	MOVE.W	#$100,D0
 		MOVE.W	D0,(A1)
 		RTS
 
-.INITCODE:	DC.W	$AF01,$D91F,$1127,$0021,$2600,$F977,$EDB0,$DDE1
+.INITCODE:
+        DC.W	$AF01,$D91F,$1127,$0021,$2600,$F977,$EDB0,$DDE1
 		DC.W	$FDE1,$ED47,$ED4F,$D1E1,$F108,$D9C1,$D1E1,$F1F9
 		DC.W	$F3ED,$5636,$E9E9
 .CODEEND:
@@ -372,7 +392,8 @@ INIT_Z80:	MOVE.W	#$100,D0
 ;----------------------------------------------------------
 ;		INIT JOY
 ;----------------------------------------------------------
-JOYINIT:	MOVE.B	#$00,MDSCTRL1
+JOYINIT:
+        MOVE.B	#$00,MDSCTRL1
 		MOVE.B	#$00,MDSCTRL2
 		MOVE.B	#$00,MDSCTRL3
 		MOVE.B	#$40,JSCTRL
@@ -387,92 +408,95 @@ JOYINIT:	MOVE.B	#$00,MDSCTRL1
 ;----------------------------------------------------------
 ;		READ JOYSTICK
 ;----------------------------------------------------------
-JOYGET6:	movem.l	d1/d2/d3/d4/d5/a0,-(sp)
-		moveq		#0,d0
-		cmp.w		#$0002,d1
-		bhi			.JOYGET6_ERR
-		add.w		d1,d1
-		move.l	#$00a10003,a0		;joystick data port address
-		move.b	#$40,6(a0,d1.w)	;set TH = output
-		nop
-		nop
-		move.b	#$40,(a0,d1.w)	; select [ ? 1 TRG-C TRG-B R L D U ]
-		moveq		#0,d2
-		nop
-		nop
-		nop
-		move.b	$00(a0,d1.w),d2 ; d2 = xxxx|xxxx|? 1 TRG-C TRG-B R L D U
-		cmp.b		#$70,d2			; checking for mouse or other handshaking device
-		beq			.JOYGET6_ERR
-		move.b	#$00,(a0,d1.w)	; select [ ? 0 START TRG-A 0 0 D U ]
-		lsl.w		#8,d2				; d2 = ? 1 TRG-C TRG-B R L D U|0 0 0 0 0 0 0 0
-		move.b	$00(a0,d1.w),d2 ;d2 = ? 1 TRG-C TRG-B R L D U|? 0 St TRG-A 0 0 D U
-		cmp.b		#$3f,d2			; checking for nothing connected
-		beq			.JOYGET6_ERR
-		move.b	#$40,(a0,d1.w)	; select [ ? 1 TRG-C TRG-B R L D U ]
-		moveq		#0,d3
-		nop
-		nop
-		nop
-		move.b	$00(a0,d1.w),d3 ; d3 = xxxx|xxxx|? 1 TRG-C TRG-B R L D U
-		move.b	#$00,(a0,d1.w)	; select [ ? 0 START TRG-A 0 0 D U ]
-		lsl.w		#8,d3
-		move.b	$00(a0,d1.w),d3 ;d3 = ? 1 TRG-C TRG-B R L D U|? 0 St TRG-A 0 0 D U
-		move.b	#$40,(a0,d1.w)	; select [ ? 1 TRG-C TRG-B R L D U ]
-		moveq		#0,d4
-		nop
-		nop
-		nop
-		move.b	$00(a0,d1.w),d4 ; d4 = xxxx|xxxx|? 1 TRG-C TRG-B R L D U
-		move.b	#$00,(a0,d1.w)	; select [ ? 0 START TRG-A 0 0 0 0 ]
-		lsl.w		#8,d4
-		move.b	$00(a0,d1.w),d4 ;d4 = ? 1 TRG-C TRG-B R L D U|? 0 St TRG-A 0 0 0 0
-		move.b	#$40,(a0,d1.w)	; select [ ? 1 0 0 MD TX TY TZ ]
-		moveq		#0,d5
-		nop
-		nop
-		nop
-		move.b	$00(a0,d1.w),d5 ; d5 = 0000|0000|? 1 0 0 MD TX TY TZ
-		move.b	#$00,(a0,d1.w)	; select [ ? 0 0 0 1 1 1 1 ]
-		lsl.w		#8,d5
-		move.b	$00(a0,d1.w),d5 ;d5 = ? 1 0 0 MD TX TY TZ| ? 0 0 0 1 1 1 1
-		move.b	#$40,(a0,d1.w)
+JOYGET6:
+        MOVEM.L	D1/D2/d3/d4/d5/a0,-(sp)
+		MOVEQ		#0,d0
+		CMP.W		#$0002,d1
+		BHI			.JOYGET6_ERR
+		ADD.W		d1,d1
+		MOVE.L	#$00a10003,a0		;joystick data port address
+		MOVE.B	#$40,6(a0,d1.w)	;set TH = output
+		NOP
+		NOP
+		MOVE.B	#$40,(a0,d1.w)	; select [ ? 1 TRG-C TRG-B R L D U ]
+		MOVEQ		#0,d2
+		NOP
+		NOP
+		NOP
+		MOVE.B	$00(a0,d1.w),d2 ; d2 = xxxx|xxxx|? 1 TRG-C TRG-B R L D U
+		CMP.B		#$70,d2			; checking for mouse or other handshaking device
+		BEQ			.JOYGET6_ERR
+		MOVE.B	#$00,(a0,d1.w)	; select [ ? 0 START TRG-A 0 0 D U ]
+		LSL.W		#8,d2				; d2 = ? 1 TRG-C TRG-B R L D U|0 0 0 0 0 0 0 0
+		MOVE.B	$00(a0,d1.w),d2 ;d2 = ? 1 TRG-C TRG-B R L D U|? 0 St TRG-A 0 0 D U
+		CMP.B		#$3f,d2			; checking for nothing connected
+		BEQ			.JOYGET6_ERR
+		MOVE.B	#$40,(a0,d1.w)	; select [ ? 1 TRG-C TRG-B R L D U ]
+		MOVEQ		#0,d3
+		NOP
+		NOP
+		NOP
+		MOVE.B	$00(a0,d1.w),d3 ; d3 = xxxx|xxxx|? 1 TRG-C TRG-B R L D U
+		MOVE.B	#$00,(a0,d1.w)	; select [ ? 0 START TRG-A 0 0 D U ]
+		LSL.W		#8,d3
+		MOVE.B	$00(a0,d1.w),d3 ;d3 = ? 1 TRG-C TRG-B R L D U|? 0 St TRG-A 0 0 D U
+		MOVE.B	#$40,(a0,d1.w)	; select [ ? 1 TRG-C TRG-B R L D U ]
+		MOVEQ		#0,d4
+		NOP
+		NOP
+		NOP
+		MOVE.B	$00(a0,d1.w),d4 ; d4 = xxxx|xxxx|? 1 TRG-C TRG-B R L D U
+		MOVE.B	#$00,(a0,d1.w)	; select [ ? 0 START TRG-A 0 0 0 0 ]
+		LSL.W		#8,d4
+		MOVE.B	$00(a0,d1.w),d4 ;d4 = ? 1 TRG-C TRG-B R L D U|? 0 St TRG-A 0 0 0 0
+		MOVE.B	#$40,(a0,d1.w)	; select [ ? 1 0 0 MD TX TY TZ ]
+		MOVEQ		#0,d5
+		NOP
+		NOP
+		NOP
+		MOVE.B	$00(a0,d1.w),d5 ; d5 = 0000|0000|? 1 0 0 MD TX TY TZ
+		MOVE.B	#$00,(a0,d1.w)	; select [ ? 0 0 0 1 1 1 1 ]
+		LSL.W		#8,d5
+		MOVE.B	$00(a0,d1.w),d5 ;d5 = ? 1 0 0 MD TX TY TZ| ? 0 0 0 1 1 1 1
+		MOVE.B	#$40,(a0,d1.w)
 
-		cmp.w		d2,d3
-		bne			.JOYGET6_ERR		; nothing connected or unknown device
-		cmp.w		d3,d4
-		beq			.JOYGET3_PAD		; regular 3 button controller
-		and.w		#$000f,d4
-		bne			.JOYGET6_ERR
-		move.b	d2,d0
-		lsl.w		#4,d0			;d0.w = 0000|? 0 St TA 0 0 D U 0 0 0 0
-		lsr.w		#8,d2			;d2.w = 0000|0000|? 1 TC TB R L D U
-		move.b	d2,d0			;d0.w	= 0000|? 0 St TA ? 1 TC TB R L D U
-		lsl.b		#2,d0			;d0.w	= 0000|? 0 St TA TC TB R L D U 0 0
-		lsr.w		#2,d0			;d0.w	=	0000|0 0 ? 0|St TA TC TB R L D U
-		and.l		#$000000ff,d0
-		lsl.b		#4,d5			;d5.w = ? 1 0 0 MD TX TY TZ|1 1 1 1 0 0 0 0
-		lsl.w		#4,d5			;d5.w	=	MD TX TY TZ 1 1 1 1 0 0 0 0 0 0 0 0
-		or.w		d5,d0			;d0.w = MD TX TY TZ 1 1 1 1 St TA TC TB R L D U
-		or.l		#$80000000,d0	;d0.l=1xxx|xxxx|xxxx|xxxx|MD,TX,TY,TZ,St,TA,TC,TB,R,L,D,U
-		bra			.JOYGET6_ERR
+		CMP.W		d2,d3
+		BNE			.JOYGET6_ERR		; nothing connected or unknown device
+		CMP.W		d3,d4
+		BEQ			.JOYGET3_PAD		; regular 3 button controller
+		AND.W		#$000f,d4
+		BNE			.JOYGET6_ERR
+		MOVE.B	D2,D0
+		LSL.W		#4,d0			;d0.w = 0000|? 0 St TA 0 0 D U 0 0 0 0
+		LSR.W		#8,d2			;d2.w = 0000|0000|? 1 TC TB R L D U
+		MOVE.B	D2,D0			;d0.w	= 0000|? 0 St TA ? 1 TC TB R L D U
+		LSL.B		#2,d0			;d0.w	= 0000|? 0 St TA TC TB R L D U 0 0
+		LSR.W		#2,d0			;d0.w	=	0000|0 0 ? 0|St TA TC TB R L D U
+		AND.L		#$000000ff,d0
+		LSL.B		#4,d5			;d5.w = ? 1 0 0 MD TX TY TZ|1 1 1 1 0 0 0 0
+		LSL.W		#4,d5			;d5.w	=	MD TX TY TZ 1 1 1 1 0 0 0 0 0 0 0 0
+		OR.W		d5,d0			;d0.w = MD TX TY TZ 1 1 1 1 St TA TC TB R L D U
+		OR.L		#$80000000,d0	;d0.l=1xxx|xxxx|xxxx|xxxx|MD,TX,TY,TZ,St,TA,TC,TB,R,L,D,U
+		BRA			.JOYGET6_ERR
 .JOYGET3_PAD:
-		move.b	d2,d0
-		lsl.w		#4,d0			;d0.w = 0000|? 0 St TA 0 0 D U 0 0 0 0
-		lsr.w		#8,d2			;d2.w = 0000|0000|? 1 TC TB R L D U
-		move.b	d2,d0			;d0.w	= 0000|? 0 St TA ? 1 TC TB R L D U
-		lsl.b		#2,d0			;d0.w	= 0000|? 0 St TA TC TB R L D U 0 0
-		lsr.w		#2,d0			;d0.w	=	0000|0 0 ? 0|St TA TC TB R L D U
-		and.l		#$000000ff,d0 ;d0.l=0xxx|xxxx|xxxx|xxxx|xxxx|xxxx|St,TA,TC,TB,R,L,D,U
+		MOVE.B	d2,d0
+		LSL.W		#4,d0			;d0.w = 0000|? 0 St TA 0 0 D U 0 0 0 0
+		LSR.W		#8,d2			;d2.w = 0000|0000|? 1 TC TB R L D U
+		MOVE.B	d2,d0			;d0.w	= 0000|? 0 St TA ? 1 TC TB R L D U
+		LSL.B		#2,d0			;d0.w	= 0000|? 0 St TA TC TB R L D U 0 0
+		LSR.W		#2,d0			;d0.w	=	0000|0 0 ? 0|St TA TC TB R L D U
+		AND.L		#$000000ff,d0 ;d0.l=0xxx|xxxx|xxxx|xxxx|xxxx|xxxx|St,TA,TC,TB,R,L,D,U
 .JOYGET6_ERR:
-		movem.l	(sp)+,d1/d2/d3/d4/d5/a0
-		rts
+		MOVEM.L	(sp)+,d1/d2/d3/d4/d5/a0
+		RTS
 
 ;----------------------------------------------------------
 ;		NEW READ JOY
 ;----------------------------------------------------------
-READJOY:	MOVE.W	#$100,Z80REQ
-.L1:		BTST	#0,Z80REQ
+READJOY:
+        MOVE.W	#$100,Z80REQ
+.L1:
+        BTST	#0,Z80REQ
 		BNE.S	.L1
 
 		MOVE.B	JOYPAD0,JOYPADOLD	;STORE OLD PAD INFO FOR DEBOUNCE IF NEEDED
@@ -485,7 +509,8 @@ READJOY:	MOVE.W	#$100,Z80REQ
 		TST.B	D0	  	;DID JOYPAD READ FAIL?
 		BNE.S	.PASS
 		MOVE.B	#$FF,D0
-.PASS:		MOVE.B	D0,JOYPAD0
+.PASS:
+        MOVE.B	D0,JOYPAD0
 		RTS
 
 ;----------------------------------------------------------
@@ -495,13 +520,16 @@ READJOY:	MOVE.W	#$100,Z80REQ
 ;----------------------------------------------------------
 ;		VERTICAL BLANK HANDLER
 ;----------------------------------------------------------
-VBLANK:		MOVE.L	VBIVECTOR,-(A7)
+VBLANK:
+        MOVE.L	VBIVECTOR,-(A7)
 		RTS
 
-NULL:		MOVE.W	#1,VBLANKON
+NULL:
+        MOVE.W	#1,VBLANKON
 		RTE
 
-MAINVBI:	MOVEM.L	A0-A6/D2-D7,-(SP)	;PUSH REGISTERS
+MAINVBI:
+        MOVEM.L	A0-A6/D2-D7,-(SP)	;PUSH REGISTERS
 
 		JSR	USERVBI
 
@@ -531,7 +559,8 @@ ERROR:		MOVE.W	#$2700,SR		;TURN OFF INTERUPTS
 ;		D2=DESTINATION ADDRESS
 ;		A0,A1,D3,D4,D5,D6 TRASHED
 ;----------------------------------------------------------
-DMADUMPS:	LEA.L	VDP_CONTROL,A1
+DMADUMPS:
+        LEA.L	VDP_CONTROL,A1
 
 		AND.L	#$FFFFFF,D1	;MAKE SURE IN ROM/RAM
 
@@ -544,7 +573,8 @@ DMADUMPS:	LEA.L	VDP_CONTROL,A1
 
 .PASS:
  		MOVE.W	#$100,Z80REQ
-.L1:		BTST	#0,Z80REQ
+.L1:
+        BTST	#0,Z80REQ
 		BNE.S	.L1
 		WREG	01,%01110100		;DMA ENABLE
 
@@ -557,14 +587,16 @@ DMADUMPS:	LEA.L	VDP_CONTROL,A1
 
 		RTS
 
-.TWO:		SUB.W	D4,D3
+.TWO:
+        SUB.W	D4,D3
 		LSR.W	#1,D3
 		MOVE.W	D3,D0
 		MOVE.L	D1,D5
 		MOVE.L	D2,D6
 
  		MOVE.W	#$100,Z80REQ
-.L2:		BTST	#0,Z80REQ
+.L2:
+        BTST	#0,Z80REQ
 		BNE.S	.L2
 		WREG	01,%01110100		;DMA ENABLE
 
@@ -596,7 +628,8 @@ DMADUMPS:	LEA.L	VDP_CONTROL,A1
 ;		D2=DEST
 ;		A0,D1,D2 TRASHED
 ;----------------------------------------------------------
-RAMDMAC:	LEA.L	QSOURCE+10,A0
+RAMDMAC:
+        LEA.L	QSOURCE+10,A0
 		LSR.L	#1,D1
 		LSL.L	#2,D2
 		LSR.W	#2,D2
@@ -618,21 +651,25 @@ RAMDMAC:	LEA.L	QSOURCE+10,A0
 		MOVE.W	D2,(A1)
 		RTS
 
-RAMDMAFC:	MOVE.L	D0,(A1)
+RAMDMAFC:
+        MOVE.L	D0,(A1)
 		MOVE.L	D1,(A1)
 		MOVE.W	D2,(A1)
 		MOVE.W	D3,(A1)
 		MOVE.W	D4,(A1)
 		RTS
 
-RAMVERTC:	LEA.L	DMAREQ,A0
+RAMVERTC:
+        LEA.L	DMAREQ,A0
 		MOVE.W	#$8000,D1
 
 		MOVE.W	#$8174,(A2)		;DMA ENABLE
 
-.BACK:		MOVE.W	(A0)+,D0
+.BACK:
+        MOVE.W	(A0)+,D0
 		BGE.S	.CHECK
-.L1:		MOVE.W	D0,(A2)			;FIRST PASS
+.L1:
+        MOVE.W	D0,(A2)			;FIRST PASS
 		MOVE.L	(A0)+,(A2)		;SIZE/SOURCE
 		MOVE.L	(A0)+,(A2)		;SOURCE/SOURCE
 		MOVE.W	(A0)+,(A2)		;DEST
@@ -641,15 +678,15 @@ RAMVERTC:	LEA.L	DMAREQ,A0
 		MOVE.W	(A0)+,D0		;SIZE
 		BLT.S	.L1
 
-.CHECK:		BEQ.S	.DONE			;END
+.CHECK:
+        BEQ.S	.DONE			;END
 		OR.W	D1,D0
 		MOVE.W	D0,(A2)
 		BRA.S	.BACK
 
-.DONE:		MOVE.L	#0,DMAREQ
-
+.DONE:
+        MOVE.L	#0,DMAREQ
 		MOVE.W	#$8164,(A2)		;DMA DISABLE
-
 		RTS
 
 RAMDMAEND:
@@ -657,7 +694,8 @@ RAMDMAEND:
 ;----------------------------------------------------------
 ;		COPY RAM ROUTINES TO RAM
 ;----------------------------------------------------------
-SETUPRAM:	MOVE.L	#$94009300,QSIZE
+SETUPRAM:
+        MOVE.L	#$94009300,QSIZE
 		MOVE.L	#$97009600,QSOURCE
 		MOVE.W	#$9500,QSOURCE+4
 
@@ -665,7 +703,8 @@ SETUPRAM:	MOVE.L	#$94009300,QSIZE
 		LEA.L	RAMDMA,A1
 
 		MOVE.W	#RAMDMAEND-RAMDMAC-1,D0
-.L1:		MOVE.B	(A0)+,(A1)+
+.L1:
+        MOVE.B	(A0)+,(A1)+
 		DBRA	D0,.L1
 		RTS
 
@@ -675,37 +714,47 @@ RAMVERT:	EQU	RAMDMA+(RAMVERTC-RAMDMAC)
 ;----------------------------------------------------------
 ;		PALETTE SETUPS
 ;----------------------------------------------------------
-SETPAL1:	MOVE.W	#16-1,D0
+SETPAL1:
+        MOVE.W	#16-1,D0
 		LEA.L	PALETTES,A1
-.LOOP1:		MOVE.W	(A0)+,(A1)+
+.LOOP1:
+        MOVE.W	(A0)+,(A1)+
 		DBRA	D0,.LOOP1
 		RTS
 
-SETPAL2:	MOVE.W	#16-1,D0
+SETPAL2:
+        MOVE.W	#16-1,D0
 		LEA.L	PALETTES+32,A1
-.LOOP1:		MOVE.W	(A0)+,(A1)+
+.LOOP1:
+        MOVE.W	(A0)+,(A1)+
 		DBRA	D0,.LOOP1
 		RTS
 
-SETPAL3:	MOVE.W	#16-1,D0
+SETPAL3:
+        MOVE.W	#16-1,D0
 		LEA.L	PALETTES+64,A1
-.LOOP1:		MOVE.W	(A0)+,(A1)+
+.LOOP1:
+        MOVE.W	(A0)+,(A1)+
 		DBRA	D0,.LOOP1
 		RTS
 
-SETPAL4:	MOVE.W	#16-1,D0
+SETPAL4:
+        MOVE.W	#16-1,D0
 		LEA.L	PALETTES+96,A1
-.LOOP1:		MOVE.W	(A0)+,(A1)+
+.LOOP1:
+        MOVE.W	(A0)+,(A1)+
 		DBRA	D0,.LOOP1
 		RTS
 
 ;----------------------------------------------------------
 ;		COPY PALETTE TO MEMORY
 ;----------------------------------------------------------
-DUMPCOLS:	MOVEM.L	D0-D4,-(SP)
+DUMPCOLS:
+        MOVEM.L	D0-D4,-(SP)
 
 		MOVE.W	#$100,Z80REQ
-.L1:		BTST	#0,Z80REQ
+.L1:
+        BTST	#0,Z80REQ
 		BNE.S	.L1
 		WREG	01,%01110100		;DMA ENABLE
 		LEA.L	VDP_CONTROL,A1
@@ -720,7 +769,8 @@ DUMPCOLS:	MOVEM.L	D0-D4,-(SP)
 ;----------------------------------------------------------
 ;		SYSTEM PALETTE
 ;----------------------------------------------------------
-SYSPALETTE:	DC.W	$0000,$0000,$0040,$0060
+SYSPALETTE:
+        DC.W	$0000,$0000,$0040,$0060
 		DC.W	$0080,$00a0,$00c0,$0004
 		DC.W	$0026,$0248,$026a,$048c
 		DC.W	$06ae,$0622,$0842,$0a64
