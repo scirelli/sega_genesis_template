@@ -122,8 +122,16 @@ $(ASMDIR)/vasmm68k_mot:
 .PHONY: help all emu debug debugemu clean image setup setup-vasm asm-info convert
 
 help: ## Show available targets
-	@echo "Usage: make [target] [TARGET=<path>]  (default TARGET=$(TARGET)) [ASM_MODE=<vasm | wine | container>] (default ASM_MODE=auto-detect)"
+	@echo "Usage: make [target] [TARGET=<path>] [ASM_MODE=<vasm|wine|container>]"
 	@echo ""
+	@echo "TARGET is a source file path with .s or .asm extension (default: $(TARGET))"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make all                              Build default ($(TARGET))"
+	@echo "  make TARGET=src/main.s all            Build src/main.s"
+	@echo "  make TARGET=src/prj1/lesson1.asm all  Build from subdirectory"
+	@echo ""
+	@echo "Targets:"
 	@grep -hE '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
 	@echo ""
