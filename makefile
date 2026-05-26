@@ -129,7 +129,7 @@ help: ## Show available targets
 	@echo "Examples:"
 	@echo "  make all                              Build default ($(TARGET))"
 	@echo "  make TARGET=src/main.s all            Build src/main.s"
-	@echo "  make TARGET=src/prj1/lesson1.asm all  Build from subdirectory"
+	@echo "  make TARGET=src/prj1/main1.asm all    Build from subdirectory"
 	@echo ""
 	@echo "Targets:"
 	@grep -hE '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | \
