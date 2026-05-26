@@ -64,7 +64,7 @@ endif
 # --- vasm setup ---
 ifeq ($(_ASM_MODE),vasm)
   VASM := $(or $(shell command -v vasmm68k_mot 2>/dev/null),$(ASMDIR)/vasmm68k_mot)
-  VASM_FLAGS := -Fbin -m68000 -opt-allbra -opt-speed -opt-lsl -opt-pea -opt-movem -I $(SRCDIR)/ -I $(_SRC_DIR)
+  VASM_FLAGS := -Fbin -m68000 -opt-allbra -opt-speed -opt-lsl -opt-pea -opt-movem -chklabels -nocase -Dvasm=1 -I $(SRCDIR)/ -I $(_SRC_DIR)
   RUN = $(VASM)
   ASM_ARGS = $(VASM_FLAGS) -o $(_DIST_BIN) -L $(_DIST_LST) $(_SRC_FILE)
   ASM_ARGS_DEBUG = $(VASM_FLAGS) -o $(_DBG_BIN) -L $(_DBG_LST) $(_SRC_FILE)
